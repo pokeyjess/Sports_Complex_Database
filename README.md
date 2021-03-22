@@ -1,6 +1,6 @@
 # Sports Complex Database
 
-This is a practice MySQL database utilizing lessons in the book "Learn SQL in One Day" by Jamie Chan. It covers database design and creation, inserting data, queries, views, triggers and stored procedures and variables.
+This is a practice MySQL database utilizing lessons in the book "Learn SQL in One Day" by Jamie Chan. It covers database design and creation, inserting data, queries, views, triggers and stored procedures and functions.
 
 From the book:
 
