@@ -137,7 +137,7 @@ BEGIN
 		WHERE id = p_member_id;
 END $$
 
-# Update payment
+# Update when payment is made
 CREATE PROCEDURE update_payment (IN p_id INT)
 BEGIN
 	DECLARE v_member_id VARCHAR(255);
@@ -183,11 +183,15 @@ BEGIN
 		FROM member_bookings WHERE id = p_booking_id;
 	SELECT payment_due INTO v_payment_due
 		FROM members WHERE id = v_member_id;
+	# Check if cancelling before deadline:
 	IF CURDATE() >= v_booked_date THEN
 		SELECT 'Cancellation cannot be done on or after the booked date' 
 			INTO p_message;
+		# Check if has already been cancelled or paid in full:
 		ELSEIF v_payment_status = 'Cancelled' OR v_payment_status = 'Paid' THEN
 			SELECT 'Booking has already been cancelled or paid.' INTO p_message;
+		# Change to cancelled and refund price
+        # Unless this is member's third or more cancellation, then we add $10 fee:
 		ELSE
 			UPDATE bookings SET payment_status = 'Cancelled' WHERE id = p_booking_id;
             SET v_payment_due = v_payment_due - v_price;
@@ -200,7 +204,50 @@ BEGIN
 	END IF;
 END $$
 
+### Trigger ###
+
+# Adds member to another table if they cancel membership while still owing a balance.
+CREATE TRIGGER payment_check BEFORE DELETE ON members FOR EACH ROW
+BEGIN
+	DECLARE v_payment_due DECIMAL(6, 2);
+    SELECT payment_due INTO v_payment_due FROM members WHERE id = OLD.id;
+    IF v_payment_due > 0 THEN 
+		INSERT INTO pending_terminations (id, email, payment_due)
+        VALUES (OLD.id, OLD.email, OLD.payment_due);
+	END IF;
+END $$
+
+### Stored function ###
+
+# Checks if member has had two or more cancellations
+# Needed for our 'cancel_booking' procedure
+CREATE FUNCTION check_cancellation(p_booking_id INT)
+	RETURNS INT DETERMINISTIC
+    BEGIN
+		DECLARE v_done INT;
+        DECLARE v_cancellation INT;
+        DECLARE v_current_payment_status VARCHAR(255);
+        DECLARE cur CURSOR FOR
+        SELECT payment_status FROM bookings WHERE member_id = 
+			(SELECT member_id FROM bookings WHERE id = p_booking_id)
+            ORDER BY datetime_of_booking DESC;
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
+        SET v_done = 0;
+        SET v_cancellation = 0;
+        OPEN cur;
+		cancellation_loop : LOOP
+			FETCH cur INTO v_current_payment_status;
+            IF v_current_payment_status != 'Cancelled' OR v_done = 1
+				THEN LEAVE cancellation_loop;
+                ELSE SET v_cancellation = v_cancellation + 1;
+			END IF;
+		END LOOP;
+        CLOSE cur;
+        RETURN v_cancellation;
+    END $$
+
 DELIMITER ;
+
 
 
 
