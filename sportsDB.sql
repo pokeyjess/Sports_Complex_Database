@@ -157,5 +157,54 @@ BEGIN
 	SELECT * FROM member_bookings WHERE id = p_id;
 END $$
 
+# Search for available rooms
+CREATE PROCEDURE search_room
+(IN p_room_type VARCHAR(255), IN p_booked_date DATE, IN p_booked_time TIME)
+BEGIN
+	SELECT * FROM rooms WHERE id NOT IN
+		(SELECT room_id FROM bookings
+			WHERE booked_date = p_booked_date AND booked_time = p_booked_time 
+			AND payment_status != 'Cancelled') AND room_type = p_room_type;
+END $$
+
+# Cancel a booking
+CREATE PROCEDURE cancel_booking
+(IN p_booking_id INT, OUT p_message VARCHAR(255))
+BEGIN
+	DECLARE v_cancellation INT;
+    DECLARE v_member_id VARCHAR(255);
+    DECLARE v_payment_status VARCHAR(255);
+    DECLARE v_booked_date DATE;
+    DECLARE v_price DECIMAL(6, 2);
+    DECLARE v_payment_due DECIMAL(6, 2);
+    SET v_cancellation = 0;
+    SELECT member_id, booked_date, price, payment_status 
+		INTO v_member_id, v_booked_date, v_price, v_payment_status
+		FROM member_bookings WHERE id = p_booking_id;
+	SELECT payment_due INTO v_payment_due
+		FROM members WHERE id = v_member_id;
+	IF CURDATE() >= v_booked_date THEN
+		SELECT 'Cancellation cannot be done on or after the booked date' 
+			INTO p_message;
+		ELSEIF v_payment_status = 'Cancelled' OR v_payment_status = 'Paid' THEN
+			SELECT 'Booking has already been cancelled or paid.' INTO p_message;
+		ELSE
+			UPDATE bookings SET payment_status = 'Cancelled' WHERE id = p_booking_id;
+            SET v_payment_due = v_payment_due - v_price;
+            SET v_cancellation = check_cancellation(p_booking_id);
+            IF v_cancellation >= 2 THEN
+				SET v_payment_due = v_payment_due + 10;
+			END IF;
+			UPDATE members SET payment_due = v_payment_due WHERE id = v_member_id;
+            SELECT 'Booking has been cancelled.' INTO p_message;
+	END IF;
+END $$
+
 DELIMITER ;
+
+
+
+
+
+
 
