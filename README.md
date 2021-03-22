@@ -8,4 +8,5 @@ From the book:
 
 As you can see from the ERD I created below, members can have multiple bookings, and each room can have multiple bookings, but each booking can only include one member, and one room.
 
-<img width="1097" alt="Screen Shot 2021-03-21 at 6 50 05 PM" src="https://user-images.githubusercontent.com/65363804/111924390-ac856a80-8a7a-11eb-84c0-c81fc95f6cdc.png">
+
+<img width="1065" alt="Screen Shot 2021-03-22 at 12 31 54 AM" src="https://user-images.githubusercontent.com/65363804/111940690-bd97a100-8aa5-11eb-9095-e5e861cceb81.png">
