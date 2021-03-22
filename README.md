@@ -10,4 +10,4 @@ As you can see from the ERD I created below, members can have multiple bookings,
 
 
 
-<img width="1065" alt="Screen Shot 2021-03-22 at 12 31 54 AM" src="https://user-images.githubusercontent.com/65363804/111947488-fb9bc180-8ab3-11eb-9833-e07854abea6d.png">
+<img width="1063" alt="Screen Shot 2021-03-22 at 2 13 53 AM" src="https://user-images.githubusercontent.com/65363804/111947729-677e2a00-8ab4-11eb-993d-1f874832974e.png">
