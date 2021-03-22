@@ -81,5 +81,81 @@ VALUES
 ('T1', '2018-05-25', '10:00:00', 'marvin1', '2018-05-21 11:20:46', 'Unpaid'),
 ('B2', '2018-06-12', '15:00:00', 'bbahringer', '2018-05-30 14:40:23', 'Paid');
 
+### Create view of current bookings ###
 
+CREATE VIEW member_bookings AS
+SELECT bookings.id, room_id, room_type, booked_date, booked_time, 
+member_id, datetime_of_booking, price, payment_status
+FROM bookings
+JOIN rooms
+ON bookings.room_id = rooms.id
+ORDER BY bookings.id;
+
+### Stored procedures ###
+
+DELIMITER $$
+
+# Insert a new member
+CREATE PROCEDURE insert_new_member
+(IN p_id VARCHAR(255), IN p_password VARCHAR(255), IN p_email VARCHAR(255))
+BEGIN
+	INSERT INTO members (id, password, email) VALUES (p_id, p_password, p_email);
+END $$
+
+# Delete a member
+CREATE PROCEDURE delete_member (IN p_id VARCHAR(255))
+BEGIN
+	DELETE FROM members WHERE id = p_id;
+END $$
+
+# Update member password
+CREATE PROCEDURE update_member_password
+(IN p_id VARCHAR(255), IN p_password VARCHAR(255))
+BEGIN
+	UPDATE members SET password = p_password WHERE id = p_id;
+END $$
+
+# Update member email
+CREATE PROCEDURE update_member_email
+(IN p_id VARCHAR(255), IN p_email VARCHAR(255))
+BEGIN
+	UPDATE members SET email = p_email WHERE id = p_id;
+END $$
+
+# Make a new booking
+CREATE PROCEDURE make_booking
+(IN p_room_id VARCHAR(255), IN p_booked_date DATE,
+IN p_booked_time TIME, IN p_member_id VARCHAR(255))
+BEGIN
+	DECLARE v_price DECIMAL(6, 2);
+    DECLARE v_payment_due DECIMAL(6, 2);
+    SELECT price INTO v_price FROM rooms WHERE id = p_room_id;
+    INSERT INTO bookings (room_id, booked_date, booked_time, member_id)
+		VALUES (p_room_id, p_booked_date, p_booked_time, p_member_id);
+    SELECT payment_due INTO v_payment_due FROM members WHERE id = p_member_id;
+    UPDATE members SET payment_due = v_payment_due + v_price
+		WHERE id = p_member_id;
+END $$
+
+# Update payment
+CREATE PROCEDURE update_payment (IN p_id INT)
+BEGIN
+	DECLARE v_member_id VARCHAR(255);
+    DECLARE v_payment_due DECIMAL(6, 2);
+    DECLARE v_price DECIMAL(6, 2);
+	UPDATE bookings SET payment_status = 'Paid' WHERE id = p_id;
+    SELECT member_id, price INTO v_member_id, v_price 
+		FROM member_bookings WHERE id = p_id;
+	SELECT payment_due INTO v_payment_due FROM members WHERE id = v_member_id;
+    UPDATE members SET payment_due = v_payment_due - v_price
+		WHERE id = v_member_id;
+END $$
+
+# View bookings
+CREATE PROCEDURE view_bookings (IN p_id VARCHAR(255))
+BEGIN
+	SELECT * FROM member_bookings WHERE id = p_id;
+END $$
+
+DELIMITER ;
 
